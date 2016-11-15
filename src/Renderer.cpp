@@ -59,7 +59,7 @@ void Renderer::DistributeVPLs() {
         light_pos_ = Vec3f(213/20. + (343-213)/20.*rand()/RAND_MAX, 548/20.-0.5, 227/20. + (332-227)/20.*rand()/RAND_MAX);
         light_colors_.push_back(Vec3f(1.0, 1.0, 1.0));
         light_poses_.push_back(light_pos_);
-        light_weights_.push_back(1. / double(target_vpl_number)*15);
+        light_weights_.push_back(1. / double(target_vpl_number)*6);
         light_directions_.push_back(light_dir);
         Vec3f sample_dir = CosWeightedHemisphereSample(light_dir);
         Ray ray(light_pos_, sample_dir);
@@ -72,7 +72,7 @@ void Renderer::DistributeVPLs() {
         Vec3f color = mat->GetReflectance() * fabs(normal.dot(sample_dir));
         light_poses_.push_back(intersection.hit + normal*delta);
         light_colors_.push_back(color);
-        light_weights_.push_back(1. / double(target_vpl_number)*30);
+        light_weights_.push_back(1. / double(target_vpl_number)*18);
         light_directions_.push_back(normal);
 
         do {
@@ -87,7 +87,7 @@ void Renderer::DistributeVPLs() {
             light_poses_.push_back(intersection.hit + normal*delta);
             Vec3f c2(color.x*color2.x, color.y*color2.y, color.z*color2.z);
             light_colors_.push_back(c2);
-            light_weights_.push_back(1. / double(target_vpl_number)*30);
+            light_weights_.push_back(1. / double(target_vpl_number)*18);
             light_directions_.push_back(normal);
             do {
                 Vec3f sample_dir = CosWeightedHemisphereSample(normal);
@@ -101,7 +101,7 @@ void Renderer::DistributeVPLs() {
                 light_poses_.push_back(intersection.hit + normal*delta);
                 Vec3f c3(color2.x*color3.x, color2.y*color3.y, color2.z*color3.z);
                 light_colors_.push_back(c3);
-                light_weights_.push_back(1. / double(target_vpl_number)*30);
+                light_weights_.push_back(1. / double(target_vpl_number)*18);
                 light_directions_.push_back(normal);
             } while (false);
         } while (false);

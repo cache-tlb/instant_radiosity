@@ -78,6 +78,7 @@ void main()
     float dist = length(light_pos - frag_pos);
     float att = max(-1.0*dot(light_dir, normalize(light_direction)), 0.0);
     float att_dist = 1.0 / (1.0 + 0.02*dist + 0.01*dist*dist);
+    att_dist = sqrt(att_dist);
     vec3 lighting = (1.0 - shadow) * diffuse * diffuse_color * att * att_dist;
     outputF = vec4(lighting, 1.0f);
 }
