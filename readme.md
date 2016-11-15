@@ -7,6 +7,6 @@ Direct lighting
 ![](results/direct.png)
 
 
-With 4096 samples with VPLs
+4096 samples with VPLs
 
 ![](results/vpl-4096.png)
