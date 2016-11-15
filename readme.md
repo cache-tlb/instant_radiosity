@@ -6,7 +6,14 @@ Direct lighting
 
 ![](results/direct-attenuation.png)
 
+Mitsuba reference result (max depth = 2)
+
+![](results/mitsuba-vpl-depth2.png)
 
 4096 samples with VPLs
 
 ![](results/vpl-4096.png)
+
+Mitsuba reference result(max depth = 3, Samples per pixel = 4096)
+
+![](results/mitsuba-vpl-depth3.png)
