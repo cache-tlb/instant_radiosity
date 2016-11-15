@@ -4,9 +4,9 @@ Note: This project is almost finished, although the shaders are a little bit pro
 
 Direct lighting
 
-![](result/direct.png)
+![](results/direct.png)
 
 
 With 4096 samples with VPLs
 
-![](result/vpl-4096.png)
+![](results/vpl-4096.png)
