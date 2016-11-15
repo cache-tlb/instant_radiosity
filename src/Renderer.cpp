@@ -42,15 +42,15 @@ void Renderer::BuildBVH() {
 }
 
 void Renderer::DistributeVPLs() {
-    double direct_weight = 0.0;
+//    double direct_weight = 0.0;
     light_colors_.clear();
     light_poses_.clear();
     light_weights_.clear();
     light_directions_.clear();
-    light_colors_.push_back(Vec3f(1.0, 1.0, 1.0));
-    light_poses_.push_back(light_pos_);
-    light_weights_.push_back(direct_weight);
-    light_directions_.push_back(Vec3f(0,-1,0));
+//    light_colors_.push_back(Vec3f(1.0, 1.0, 1.0));
+//    light_poses_.push_back(light_pos_);
+//    light_weights_.push_back(direct_weight);
+//    light_directions_.push_back(Vec3f(0,-1,0));
 
     int target_vpl_number = 512*4;
     double delta = 0.01;
@@ -59,7 +59,7 @@ void Renderer::DistributeVPLs() {
         light_pos_ = Vec3f(213/20. + (343-213)/20.*rand()/RAND_MAX, 548/20.-0.5, 227/20. + (332-227)/20.*rand()/RAND_MAX);
         light_colors_.push_back(Vec3f(1.0, 1.0, 1.0));
         light_poses_.push_back(light_pos_);
-        light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*15);
+        light_weights_.push_back(1. / double(target_vpl_number)*15);
         light_directions_.push_back(light_dir);
         Vec3f sample_dir = CosWeightedHemisphereSample(light_dir);
         Ray ray(light_pos_, sample_dir);
@@ -72,7 +72,7 @@ void Renderer::DistributeVPLs() {
         Vec3f color = mat->GetReflectance() * fabs(normal.dot(sample_dir));
         light_poses_.push_back(intersection.hit + normal*delta);
         light_colors_.push_back(color);
-        light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*30);
+        light_weights_.push_back(1. / double(target_vpl_number)*30);
         light_directions_.push_back(normal);
 
         do {
@@ -87,7 +87,7 @@ void Renderer::DistributeVPLs() {
             light_poses_.push_back(intersection.hit + normal*delta);
             Vec3f c2(color.x*color2.x, color.y*color2.y, color.z*color2.z);
             light_colors_.push_back(c2);
-            light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*30);
+            light_weights_.push_back(1. / double(target_vpl_number)*30);
             light_directions_.push_back(normal);
             do {
                 Vec3f sample_dir = CosWeightedHemisphereSample(normal);
@@ -101,7 +101,7 @@ void Renderer::DistributeVPLs() {
                 light_poses_.push_back(intersection.hit + normal*delta);
                 Vec3f c3(color2.x*color3.x, color2.y*color3.y, color2.z*color3.z);
                 light_colors_.push_back(c3);
-                light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*30);
+                light_weights_.push_back(1. / double(target_vpl_number)*30);
                 light_directions_.push_back(normal);
             } while (false);
         } while (false);
@@ -405,6 +405,7 @@ void Renderer::Render() {
         show_texture_shader_->uniforms("t_diffuse", 0);
         show_texture_shader_->draw_mesh(screen_plane_);
 
+        // render the positions of VPLs
         if (0) {
             glClear(GL_DEPTH_BUFFER_BIT);
             for (int k = 0; k < light_poses_.size(); k++) {
@@ -427,6 +428,7 @@ void Renderer::Render() {
             }
         }
     } else {
+        /*
         // distribute the VPLs, I need consider it again.
         double sum_intensity = 0.;
         // first, render a cube map from the light source.
@@ -566,7 +568,7 @@ void Renderer::Render() {
                     cube_normals_.push_back(n);
                 }
             }
-        }
+        }*/
 
         /*vsml->loadIdentity(VSMathLibQT::MODEL);
         vsml->loadIdentity(VSMathLibQT::VIEW);
@@ -581,6 +583,7 @@ void Renderer::Render() {
         cubemap_show_shader_->uniforms("cube_texture", 0);
         cubemap_show_shader_->draw_mesh(sphere_mesh_);*/
         // then sample the positions and generate a vpl for each position.
+/*
         std::uniform_real_distribution<double> unif(0, 1);
         std::default_random_engine re;
 
@@ -596,14 +599,14 @@ void Renderer::Render() {
             double r = unif(re) * sum_intensity;
 //            qDebug() << r / sum_intensity;
             double acc = 0;
-            /*int index = -1;
-            for (int i = 0; i < cube_intensities_.size(); i++) {
-                if (acc < r && acc + cube_intensities_[i] >= r) {
-                    index = i;
-                    break;
-                }
-                acc += cube_intensities_[i];
-            }*/
+//            int index = -1;
+//            for (int i = 0; i < cube_intensities_.size(); i++) {
+//                if (acc < r && acc + cube_intensities_[i] >= r) {
+//                    index = i;
+//                    break;
+//                }
+//                acc += cube_intensities_[i];
+//            }
              int index = cube_colors_.size()*((i+0.5)/double(num_vpls));
              i++;
 //            qDebug() << index;
@@ -633,5 +636,6 @@ void Renderer::Render() {
 //        light_colors_[0] = light_colors_[0]; light_colors_.resize(1);
 //        light_poses_[0] = light_poses_[0]; light_poses_.resize(1);
         vpl_computed_ = true;
+        */
     }
 }

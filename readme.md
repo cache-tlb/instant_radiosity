@@ -4,7 +4,7 @@ Note: This project is almost finished, although the shaders are a little bit pro
 
 Direct lighting
 
-![](results/direct.png)
+![](results/direct-attenuation.png)
 
 
 4096 samples with VPLs
