@@ -64,6 +64,13 @@ void GLWidget::paintGL() {
     camera_controller_.Update(0);
     UpdateCamera();
     renderer_->Render();
+    {
+        // save
+        QImage qimg = this->grabFrameBuffer();
+        QString save_path;
+        save_path.sprintf("./save.png");
+        qimg.save(save_path);
+    }
 }
 
 void GLWidget::resizeGL(int w, int h) {

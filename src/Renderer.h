@@ -54,6 +54,7 @@ protected:
     std::vector<Vec3f> light_poses_;
     std::vector<Vec3f> light_colors_;
     std::vector<double> light_weights_;
+    std::vector<Vec3f> light_directions_;
 
     std::vector<GLMesh*> scene_meshes_;
     std::vector<Material*> materals_;

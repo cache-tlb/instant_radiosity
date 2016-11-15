@@ -46,18 +46,21 @@ void Renderer::DistributeVPLs() {
     light_colors_.clear();
     light_poses_.clear();
     light_weights_.clear();
+    light_directions_.clear();
     light_colors_.push_back(Vec3f(1.0, 1.0, 1.0));
     light_poses_.push_back(light_pos_);
     light_weights_.push_back(direct_weight);
+    light_directions_.push_back(Vec3f(0,-1,0));
 
     int target_vpl_number = 512*4;
-    double delta = 0.001;
+    double delta = 0.01;
     Vec3f light_dir(0,-1,0);
     while (light_poses_.size() < target_vpl_number) {
         light_pos_ = Vec3f(213/20. + (343-213)/20.*rand()/RAND_MAX, 548/20.-0.5, 227/20. + (332-227)/20.*rand()/RAND_MAX);
-        // light_colors_.push_back(Vec3f(1.0, 1.0, 1.0));
-        // light_poses_.push_back(light_pos_);
-        // light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*2);
+        light_colors_.push_back(Vec3f(1.0, 1.0, 1.0));
+        light_poses_.push_back(light_pos_);
+        light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*15);
+        light_directions_.push_back(light_dir);
         Vec3f sample_dir = CosWeightedHemisphereSample(light_dir);
         Ray ray(light_pos_, sample_dir);
         IntersectionInfo intersection;
@@ -66,53 +69,41 @@ void Renderer::DistributeVPLs() {
         Material *mat = intersection.object->GetMaterial();
         Vec3f normal = intersection.object->GetNoamal(intersection);
         if (normal.dot(sample_dir) > 0) normal = normal * -1.f;
-//        qDebug() << intersection.hit.x << intersection.hit.y << intersection.hit.z << normal.x << normal.y << normal.z;
         Vec3f color = mat->GetReflectance() * fabs(normal.dot(sample_dir));
-        float t = random_float<float>();
-        // t = 0.001;
-        Vec3f pos = light_pos_*t + intersection.hit*(1-t);
-        light_poses_.push_back(pos);
-        // light_poses_.push_back(intersection.hit + normal*delta);
+        light_poses_.push_back(intersection.hit + normal*delta);
         light_colors_.push_back(color);
-        light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*3);
+        light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*30);
+        light_directions_.push_back(normal);
 
         do {
             Vec3f sample_dir = CosWeightedHemisphereSample(normal);
-            Vec3f old_pos = intersection.hit;
             Ray ray(intersection.hit + normal*delta, sample_dir);
             bool is_intersect = bvh_->GetIntersection(ray, &intersection, false);
             if (!is_intersect) continue;
             Material *mat = intersection.object->GetMaterial();
             Vec3f normal = intersection.object->GetNoamal(intersection);
             if (normal.dot(sample_dir) > 0) normal = normal * -1.f;
-//            qDebug() << intersection.hit.x << intersection.hit.y << intersection.hit.z << normal.x << normal.y << normal.z;
             Vec3f color2 = mat->GetReflectance() * fabs(normal.dot(sample_dir));
-            float t = random_float<float>();
-            Vec3f pos = old_pos*t + intersection.hit*(1-t);
-            light_poses_.push_back(pos);
-            // light_poses_.push_back(intersection.hit + normal*delta);
+            light_poses_.push_back(intersection.hit + normal*delta);
             Vec3f c2(color.x*color2.x, color.y*color2.y, color.z*color2.z);
             light_colors_.push_back(c2);
-            light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*3);
-            /*do {
+            light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*30);
+            light_directions_.push_back(normal);
+            do {
                 Vec3f sample_dir = CosWeightedHemisphereSample(normal);
-                Vec3f old_pos = intersection.hit;
                 Ray ray(intersection.hit + normal*delta, sample_dir);
                 bool is_intersect = bvh_->GetIntersection(ray, &intersection, false);
                 if (!is_intersect) continue;
                 Material *mat = intersection.object->GetMaterial();
                 Vec3f normal = intersection.object->GetNoamal(intersection);
-//                qDebug() << intersection.hit.x << intersection.hit.y << intersection.hit.z << normal.x << normal.y << normal.z;
                 if (normal.dot(sample_dir) > 0) normal = normal * -1.f;
                 Vec3f color3 = mat->GetReflectance() * fabs(normal.dot(sample_dir));
-                float t = random_float<float>();
-                Vec3f pos = old_pos*t + intersection.hit*(1-t);
-                light_poses_.push_back(pos);
-                // light_poses_.push_back(intersection.hit + normal*delta);
+                light_poses_.push_back(intersection.hit + normal*delta);
                 Vec3f c3(color2.x*color3.x, color2.y*color3.y, color2.z*color3.z);
                 light_colors_.push_back(c3);
-                light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*3);
-            } while (false);*/
+                light_weights_.push_back((1-direct_weight) / double(target_vpl_number)*30);
+                light_directions_.push_back(normal);
+            } while (false);
         } while (false);
     }
     vpl_computed_ = true;
@@ -205,8 +196,10 @@ void Renderer::RenderSingleLight(int light_id) {
     std::function<void(void)> call_back = [this, light_id]() {
         float light_pos_array[3];
         float light_color_array[3];
+        float light_direction_array[3];
         light_colors_[light_id].toArray<float>(light_color_array);
         light_poses_[light_id].toArray<float>(light_pos_array);
+        light_directions_[light_id].toArray<float>(light_direction_array);
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         for (int i = 0; i < scene_meshes_.size(); i++) {
@@ -218,6 +211,7 @@ void Renderer::RenderSingleLight(int light_id) {
             model_shader_->uniforms("diffuse_color", diffuse_array);
             model_shader_->uniforms("light_color", light_color_array);
             model_shader_->uniforms("light_pos", light_pos_array);
+            model_shader_->uniforms("light_direction", light_direction_array);
             model_shader_->draw_mesh(scene_meshes_[i]);
         }
     };

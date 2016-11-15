@@ -5,6 +5,7 @@ uniform samplerCube shadow_cube;
 uniform vec3 light_pos;
 uniform vec3 diffuse_color;
 uniform vec3 light_color;
+uniform vec3 light_direction;
 
 in vec3 frag_pos;
 in vec3 N;
@@ -75,8 +76,8 @@ void main()
     float shadow = ShadowCubeCalc(frag_pos);
     // float shadow = 0.0;
     float dist = length(light_pos - frag_pos);
-    float att = 1.0 / (1.0 + 0.5*dist + 0.1*dist*dist);
-    att = 1;
-    vec3 lighting = (1.0 - shadow) * diffuse * diffuse_color * att;
+    float att = max(-1.0*dot(light_dir, normalize(light_direction)), 0.0);
+    float att_dist = 1.0 / (1.0 + 0.02*dist + 0.01*dist*dist);
+    vec3 lighting = (1.0 - shadow) * diffuse * diffuse_color * att * att_dist;
     outputF = vec4(lighting, 1.0f);
 }
