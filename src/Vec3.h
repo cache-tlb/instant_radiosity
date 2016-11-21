@@ -1,6 +1,8 @@
 #ifndef VEC3_H
 #define VEC3_H
 
+#include <cmath>
+
 template<typename _Tp>
 class Vec3 {
 public:
@@ -107,7 +109,7 @@ public:
         a[2] = z;
     }
 
-    static Vec3<_Tp> lerp(const Vec3<_Tp> &a, const Vec3<_Tp> &b, float fraction) {
+    static Vec3<_Tp> lerp(const Vec3<_Tp> &a, const Vec3<_Tp> &b, float t) {
         _Tp x = a.x + (b.x - a.x) * t;
         _Tp y = a.y + (b.y - a.y) * t;
         _Tp z = a.z + (b.z - a.z) * t;

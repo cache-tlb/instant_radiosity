@@ -65,7 +65,7 @@ HEADERS  += \
     src/BVH.h \
     src/Triangle.h
 
-LIBS += opengl32.lib
+win32:LIBS += opengl32.lib
 
 DISTFILES += \
     Shaders/shadow_depth_map.fs.glsl \
