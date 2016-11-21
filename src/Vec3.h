@@ -2,6 +2,7 @@
 #define VEC3_H
 
 #include <cmath>
+#include <algorithm>
 
 template<typename _Tp>
 class Vec3 {
