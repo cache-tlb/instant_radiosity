@@ -243,7 +243,7 @@ void Renderer::RenderDepthCube(int light_id) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glClearColor(0.0, 0.0, 0.0, 1.0);
         };
-        frame_buf_->drawTo(clear_call_back, 3);
+        cubemap_texture_->drawTo(clear_call_back, f, 3);
         for (int i = 0; i < scene_meshes_.size(); i++) {
             std::function<void(void)> call_back = [this, i, loc]() {
                 Vec3d diffuse = materals_[i]->GetReflectance();
@@ -258,13 +258,8 @@ void Renderer::RenderDepthCube(int light_id) {
                 cubemap_gen_shader_->uniforms("light_pos", light_pos_array);
                 cubemap_gen_shader_->draw_mesh(scene_meshes_[i]);
             };
-            frame_buf_->drawTo(call_back, 0);
+            cubemap_texture_->drawTo(call_back, f, 0);
         }
-        GLenum dstTarget = f + GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-        frame_buf_->bind();
-        cubemap_texture_->bind();
-        context->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixel_buf);
-        context->glTexImage2D(dstTarget, 0, GL_RGBA32F, 512, 512, 0, GL_RGBA, GL_FLOAT, pixel_buf);
     }
 }
 
@@ -294,7 +289,7 @@ void Renderer::Render() {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glClearColor(0.0, 0.0, 0.0, 1.0);
         };
-        frame_buf_->drawTo(clear_call_back, 3);
+        cubemap_texture_->drawTo(clear_call_back, f, 3);
         for (int i = 0; i < scene_meshes_.size(); i++) {
             std::function<void(void)> call_back = [this, i, loc]() {
                 Vec3d diffuse = materals_[i]->GetReflectance();
@@ -308,16 +303,11 @@ void Renderer::Render() {
                 cubemap_gen_shader_->uniforms("light_pos", light_pos_array);
                 cubemap_gen_shader_->draw_mesh(scene_meshes_[i]);
             };
-            frame_buf_->drawTo(call_back, 0);
+            cubemap_texture_->drawTo(call_back, f, 0);
         }
-        GLenum dstTarget = f + GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-        frame_buf_->bind();
-        cubemap_texture_->bind();
-        context->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixel_buf);
-        context->glTexImage2D(dstTarget, 0, GL_RGBA32F, 512, 512, 0, GL_RGBA, GL_FLOAT, pixel_buf);
-    }*/
+    }
 
-    /*
+
     vsml->loadIdentity(VSMathLibQT::MODEL);
     vsml->loadIdentity(VSMathLibQT::VIEW);
     vsml->lookAt(eye_.x, eye_.y, eye_.z, look_at_.x, look_at_.y, look_at_.z, up_.x, up_.y, up_.z);

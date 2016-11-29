@@ -43,6 +43,15 @@ GLCubeMap::GLCubeMap(QOpenGLFunctionsType *context, int width, int height, Optio
         context->glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, format, width, height, 0, format, type, uc);
         delete [] uc;
     }
+
+    framebuffer = 0;
+    renderbuffer = 0;
+    width_vec.resize(6);
+    height_vec.resize(6);
+    for (int i = 0; i < 6; i++) {
+        width_vec[i] = width;
+        height_vec[i] = height;
+    }
 }
 
 GLCubeMap::GLCubeMap(QOpenGLFunctionsType *context, int width[6], int height[6], GLvoid *xn, GLvoid *xp, GLvoid *yn, GLvoid *yp, GLvoid *zn, GLvoid *zp)
@@ -63,6 +72,15 @@ GLCubeMap::GLCubeMap(QOpenGLFunctionsType *context, int width[6], int height[6],
     context->glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, GL_RGB, width[3], height[3], 0, GL_RGB, GL_UNSIGNED_BYTE, yp);
     context->glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGB, width[4], height[4], 0, GL_RGB, GL_UNSIGNED_BYTE, zn);
     context->glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGB, width[5], height[5], 0, GL_RGB, GL_UNSIGNED_BYTE, zp);
+
+    framebuffer = 0;
+    renderbuffer = 0;
+    width_vec.resize(6);
+    height_vec.resize(6);
+    for (int i = 0; i < 6; i++) {
+        width_vec[i] = width[i];
+        height_vec[i] = height[i];
+    }
 }
 
 void GLCubeMap::bind(int unit /* = 0 */) {
@@ -108,3 +126,41 @@ GLCubeMap* GLCubeMap::fromQImages(QOpenGLFunctionsType *context, const QImage &x
     return cubemap;
 }
 
+void GLCubeMap::drawTo(std::function<void ()> &callback, int face_index, int clear_flag) {
+    GLint v[4];
+    preDrawTo(v, face_index, clear_flag);
+    callback();
+    postDrawTo(v);
+}
+
+void GLCubeMap::preDrawTo(GLint v[], int face_index, int clear_flag) {
+    // note: try glPushAttrib( GL_VIEWPORT_BIT );
+    context->glGetIntegerv(GL_VIEWPORT, v);
+    if (!framebuffer) context->glGenFramebuffers(1, &framebuffer);
+    if (!renderbuffer) context->glGenRenderbuffers(1, &renderbuffer);
+    context->glBindFramebuffer(GL_FRAMEBUFFER_EXT, framebuffer);
+    context->glBindRenderbuffer(GL_RENDERBUFFER_EXT, renderbuffer);
+    GLint renderbuffer_width, renderbuffer_height;
+    context->glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &renderbuffer_width);
+    context->glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &renderbuffer_height);
+    if (width_vec[face_index] != renderbuffer_width || height_vec[face_index] != renderbuffer_height) {
+        // verify this
+        context->glRenderbufferStorage(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, width_vec[face_index], height_vec[face_index]);
+    }
+    context->glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face_index, id, 0);
+    context->glFramebufferRenderbuffer(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, renderbuffer);
+    if (context->glCheckFramebufferStatus(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE_EXT) {
+        std::cerr << "Rendering to this texture is not supported (incomplete framebuffer)" << std::endl;
+    }
+    context->glViewport(0, 0, width_vec[face_index], height_vec[face_index]);
+    if (clear_flag & 1)
+        context->glClear(GL_COLOR_BUFFER_BIT);
+    if (clear_flag & 2)
+        context->glClear(GL_DEPTH_BUFFER_BIT);
+}
+
+void GLCubeMap::postDrawTo(GLint v[]) {
+    context->glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
+    context->glBindRenderbuffer(GL_RENDERBUFFER_EXT, 0);
+    context->glViewport(v[0], v[1], v[2], v[3]);
+}
