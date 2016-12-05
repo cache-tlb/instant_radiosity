@@ -12,6 +12,10 @@ GLWidget::GLWidget(QWidget *parent)
 {
     setMouseTracking(true);
     camera_controller_.is_static_moving_ = false;
+    QGLFormat format;
+    format.setSamples(100);
+    format.setSampleBuffers(true);
+    this->setFormat(format);
 }
 
 
@@ -56,8 +60,9 @@ void GLWidget::initializeGL() {
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-//    glEnable(GL_BLEND);
-//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_BLEND);
+//    glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
 //    glClampColor(GL_CLAMP_VERTEX_COLOR, GL_FALSE);
 //    glClampColor(GL_CLAMP_FRAGMENT_COLOR, GL_FALSE);
 

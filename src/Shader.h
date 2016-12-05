@@ -10,7 +10,7 @@
 class Shader{
 public:
     // now the vertex and fragment source mean the file path
-    Shader(QOpenGLFunctionsType *context, VSMathLibQT *vsml, const std::string &vertexSource, const std::string &fragmentSource);
+    Shader(QOpenGLFunctionsType *context, VSMathLibQT *vsml, const std::string &vertexSource, const std::string &fragmentSource, const Option &extra_attributes = Option());
     ~Shader();
 
     //GLuint program;
@@ -20,6 +20,8 @@ public:
     void draw_wireframe(GLMesh *mesh, float line_width = 1);
     void draw_point(GLMesh *mesh, float point_size = 1);
     void draw(GLMesh *mesh);
+
+    void draw_instance(GLMesh *mesh, int amount);
 
     // before using renderTo, the uniforms should be set first.
     //void renderTo(Mesh *mesh, Texture *texture);

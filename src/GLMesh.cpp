@@ -1,5 +1,4 @@
 #include "GLMesh.h"
-#include "VSShaderLibQT.h"
 #include "tiny_obj_loader/tiny_obj_loader.h"
 #include "util.h"
 
@@ -33,6 +32,18 @@ void GLMesh::add_face(const Vec3i &face) {
     triangles.push_back(face.x);
     triangles.push_back(face.y);
     triangles.push_back(face.z);
+}
+
+void GLMesh::add_instance_data(VSShaderLibQT::AttribType attribute_id, int attribute_unit_size, int instance_data_size, void *data) {
+    context->glBindVertexArray(vao);
+    GLuint buffer;
+    context->glGenBuffers(1, &buffer);
+    context->glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    context->glBufferData(GL_ARRAY_BUFFER, instance_data_size, data, GL_STATIC_DRAW);
+    context->glEnableVertexAttribArray(attribute_id);
+    context->glVertexAttribPointer(attribute_id, attribute_unit_size, GL_FLOAT, 0, 0, 0);
+    context->glVertexAttribDivisor(attribute_id, 1);
+    context->glBindVertexArray(0);
 }
 
 void GLMesh::compile() {
@@ -350,17 +361,21 @@ void GLMesh::LoadFromObjFile(QOpenGLFunctionsType *context, const std::string &f
         mesh->has_normals = true;
         mesh->compile();
         meshes.push_back(mesh);
-
-        Material *mat_ptr = new Material();
-        int mat_id = shapes[i].mesh.material_ids[0];
-        for (size_t f = 0; f < shapes[i].mesh.indices.size() / 3; f++) {
-            if (mat_id != shapes[i].mesh.material_ids[f]) {
-                printf("warning: material id varys in same obj mesh\n");
-                break;
+        if (!materials.empty()) {
+            Material *mat_ptr = new Material();
+            int mat_id = shapes[i].mesh.material_ids[0];
+            for (size_t f = 0; f < shapes[i].mesh.indices.size() / 3; f++) {
+                if (mat_id != shapes[i].mesh.material_ids[f]) {
+                    printf("warning: material id varys in same obj mesh\n");
+                    break;
+                }
+            }
+            if (mat_id >= 0 && mat_id < materials.size()) {
+                tinyobj::material_t &obj_mat = materials[mat_id];
+                mat_ptr->SetReflectance(obj_mat.diffuse[0], obj_mat.diffuse[1], obj_mat.diffuse[2]);
+                material_ptrs.push_back(mat_ptr);
             }
         }
-        tinyobj::material_t &obj_mat = materials[mat_id];
-        mat_ptr->SetReflectance(obj_mat.diffuse[0], obj_mat.diffuse[1], obj_mat.diffuse[2]);
-        material_ptrs.push_back(mat_ptr);
+        // end add material
     }
 }

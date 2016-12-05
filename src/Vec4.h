@@ -21,6 +21,14 @@ public:
         return *this;
     }
 
+    _Tp operator [] (int index) const {
+        return val[index];
+    }
+
+    _Tp &operator [] (int index) {
+        return val[index];
+    }
+
     Vec4 unit() const {
         _Tp len = length();
         if (len < 1e-8) return Vec4<_Tp>();
@@ -129,7 +137,10 @@ public:
     }
 
 public:
-    _Tp x, y, z, w;
+    union {
+        struct { _Tp x, y, z, w; };
+        _Tp val[4];
+    };
 };
 
 typedef Vec4<float> Vec4f;

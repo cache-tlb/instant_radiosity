@@ -1,6 +1,6 @@
 #include "Shader.h"
 
-Shader::Shader(QOpenGLFunctionsType *context, VSMathLibQT *vsml, const std::string &vertexSource, const std::string &fragmentSource)
+Shader::Shader(QOpenGLFunctionsType *context, VSMathLibQT *vsml, const std::string &vertexSource, const std::string &fragmentSource, const Option &extra_attributes)
     : context(context), vsml(vsml), vsshader(context)
 {
     vsshader.init();
@@ -12,8 +12,12 @@ Shader::Shader(QOpenGLFunctionsType *context, VSMathLibQT *vsml, const std::stri
     vsshader.setVertexAttribName(VSShaderLibQT::TEXTURE_COORD_ATTRIB, "uv");
     vsshader.setVertexAttribName(VSShaderLibQT::NORMAL_ATTRIB, "normal");
 
-    vsshader.prepareProgram();
+    for (auto it = extra_attributes.begin(); it != extra_attributes.end(); it++) {
+        int at = parseTo<int>(it->first);
+        vsshader.setVertexAttribName(VSShaderLibQT::AttribType(at), (it->second).c_str());
+    }
 
+    vsshader.prepareProgram();
 }
 
 void Shader::draw(GLMesh *mesh) {
@@ -28,6 +32,20 @@ void Shader::draw(GLMesh *mesh) {
     vsml->matricesToGL(context);
     context->glBindVertexArray(mesh->vao);
     context->glDrawElements(GL_TRIANGLES, mesh->triangles.size(), GL_UNSIGNED_INT, 0);
+    context->glBindVertexArray(0);
+}
+
+void Shader::draw_instance(GLMesh *mesh, int amount) {
+    context->glUseProgram(vsshader.getProgramIndex());
+    vsml->setUniformName(VSMathLibQT::NORMAL, "m_normal");
+    vsml->setUniformName(VSMathLibQT::MODEL, "m_model");
+    vsml->setUniformName(VSMathLibQT::VIEW, "m_view");
+    vsml->setUniformName(VSMathLibQT::VIEW_MODEL, "m_viewModel");
+    vsml->setUniformName(VSMathLibQT::PROJECTION, "m_projection");
+    vsml->setUniformName(VSMathLibQT::PROJ_VIEW_MODEL, "m_pvm");
+    vsml->matricesToGL(context);
+    context->glBindVertexArray(mesh->vao);
+    context->glDrawElementsInstanced(GL_TRIANGLES, mesh->triangles.size(), GL_UNSIGNED_INT, 0, amount);
     context->glBindVertexArray(0);
 }
 

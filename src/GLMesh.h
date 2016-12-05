@@ -5,6 +5,7 @@
 #include "Vec3.h"
 #include "Vec2.h"
 #include "Material.h"
+#include "VSShaderLibQT.h"
 
 class GLMesh {
 public:
@@ -22,6 +23,8 @@ public:
 
     void add_vertex(const Vec3f &pos, const Vec2f &uv, const Vec3f &normal);
     void add_face(const Vec3i &face);
+
+    void add_instance_data(VSShaderLibQT::AttribType attribute_id, int attribute_unit_size, int instance_data_size, void *data);
 
     void compile();
     void clear();
