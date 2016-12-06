@@ -69,8 +69,6 @@ protected:
     Shader *cubemap_gen_shader_, *cubemap_show_shader_;
     GLMesh *sphere_mesh_, *cube_mash_;
     GLCubeMap *cubemap_texture_;
-    GLTexture *frame_buf_;
-    float *pixel_buf;
 
     bool vpl_computed_;
     std::vector<double> cube_intensities_;

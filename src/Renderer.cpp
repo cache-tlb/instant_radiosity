@@ -129,9 +129,6 @@ void Renderer::Init() {
     sphere_mesh_ = GLMesh::sphere(context, 100);
     cube_mash_ = GLMesh::cube(context);
     cubemap_texture_ = new GLCubeMap(context, 512, 512, op);
-//    op = Option();
-    frame_buf_ = new GLTexture(context, 512, 512, op);
-    pixel_buf = new float[1024*1024*4];
 }
 
 void Renderer::SetCamera(const Vec3f &eye, const Vec3f &look_at, const Vec3f &up) {
@@ -345,6 +342,11 @@ void Renderer::Render() {
         // first, render the cubic shadow map (in world coordinate.
         RenderDepthCube(k);
         RenderSingleLight(k);
+//        if (k == 0) {
+//            QImage qimg;
+//            single_pass_->toQImage(qimg, true);
+//            qimg.save(QString("./single.png"));
+//        }
         std::function<void(void)> call_back2 = [this, k]() {
             single_pass_->bind(0);
             read_buf_->bind(1);

@@ -6,14 +6,14 @@
 #include "MainWindow.h"
 
 GLWidget::GLWidget(QWidget *parent)
-    :  QGLWidget(parent),
+    :  QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
        parent_(parent),
        renderer_(NULL)
 {
     setMouseTracking(true);
     camera_controller_.is_static_moving_ = false;
     QGLFormat format;
-    format.setSamples(100);
+    format.setSamples(16);
     format.setSampleBuffers(true);
     this->setFormat(format);
 }
