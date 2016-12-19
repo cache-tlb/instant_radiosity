@@ -10,8 +10,7 @@ Renderer::Renderer(QOpenGLFunctionsType *context, VSMathLibQT *vsml):
     near_clip_(1e-2), far_clip_(1e3),
     window_width_(512), window_height_(512),
     eye_(0,0,0), look_at_(0,0,-1), up_(0,1,0),
-    light_pos_(278/20., 548/20.-0.1, 279.5/20.-0.1),
-    vpl_computed_(false)
+    light_pos_(278/20., 548/20.-0.1, 279.5/20.-0.1)
 {
 
 }
@@ -100,7 +99,6 @@ void Renderer::DistributeVPLs() {
             } while (false);
         } while (false);
     }
-    vpl_computed_ = true;
 }
 
 void Renderer::Init() {

@@ -59,10 +59,12 @@ protected:
     std::vector<GLMesh*> scene_meshes_;
     std::vector<Material*> materals_;
 
+    // for bvh
     std::vector<Triangle> primitives_;
     std::vector<Shape*> primitive_ptrs_;
     BVH* bvh_;
 
+    // for accumulate buffer
     GLTexture *read_buf_, *write_buf_, *single_pass_;
     GLMesh *screen_plane_;
 
@@ -70,11 +72,6 @@ protected:
     GLMesh *sphere_mesh_, *cube_mash_;
     GLCubeMap *cubemap_texture_;
 
-    bool vpl_computed_;
-    std::vector<double> cube_intensities_;
-    std::vector<Vec3d> cube_normals_;
-    std::vector<Vec3d> cube_colors_;
-    std::vector<Vec3d> cube_poses_;
 };
 
 #endif // RENDERER_H
