@@ -342,9 +342,9 @@ void Renderer::SSAORender() {
             gbuffer_shader_->draw_mesh(scene_meshes_[i]);
         }
     };
-    gbuffer_shader_->uniforms("mode", 1);
+    gbuffer_shader_->uniforms("mode", 4);
     gbuffer_pos_texture_->drawTo(call_back, 0);
-    gbuffer_shader_->uniforms("mode", 2);
+    gbuffer_shader_->uniforms("mode", 5);
     gbuffer_normal_texture_->drawTo(call_back, 0);
     gbuffer_shader_->uniforms("mode", 3);
     gbuffer_depth_texture_->drawTo(call_back, 0);
@@ -356,7 +356,7 @@ void Renderer::SSAORender() {
     ssao_shader_->uniforms("gbuffer_normal", 1);
     ssao_shader_->uniforms("gbuffer_depth", 2);
     ssao_shader_->uniforms("num_sample", 500);
-    ssao_shader_->uniforms("sample_radius", 3.75f);
+    ssao_shader_->uniforms("sample_radius", 2.f);
     ssao_shader_->uniforms("range_chack_thres", 1.f);
     ssao_shader_->draw_mesh(screen_plane_);
 }

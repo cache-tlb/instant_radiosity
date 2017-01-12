@@ -32,7 +32,8 @@ void main()
         float d = depth;
         ret = vec4(d, d, d, 1.0);
     } else if (mode == 4) {
-        ret = vec4(frag_pos_cam, 1.0);
+        vec3 pos = frag_pos_cam;
+        ret = vec4(pos, 1.0);
     } else if (mode == 5) {
         vec3 normal = normalize(frag_normal_cam);
         ret = vec4(normal, 1.0);
