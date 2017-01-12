@@ -1,6 +1,6 @@
-#### Some (simple) global illumination algorithms
+### Some (simple) global illumination algorithms
 
-##### Instant radiosity implemented by virtual point lights
+#### Instant radiosity implemented by virtual point lights
 
 Note: This project is almost finished, although the shaders are a little bit problematic -- the attenuation function of VPL (`draw_with_shadow.fs.glsl`) needs to be fine-tuned.
 
@@ -24,7 +24,7 @@ Mitsuba reference result(max depth = 3, Samples per pixel = 4096)
 
 ![](results/mitsuba-vpl-depth3.png)
 
-##### Screen space ambient occlusion
+#### Screen space ambient occlusion
 
 TODO: test on more scenes.
 
