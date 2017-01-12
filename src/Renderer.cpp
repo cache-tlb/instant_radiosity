@@ -6,6 +6,8 @@ Renderer::Renderer(QOpenGLFunctionsType *context, VSMathLibQT *vsml):
     show_texture_shader_(NULL), acc_texture_shader_(NULL),
     read_buf_(NULL), write_buf_(NULL), single_pass_(NULL),
     screen_plane_(NULL),
+    gbuffer_shader_(NULL), ssao_shader_(NULL),
+    gbuffer_normal_texture_(NULL), gbuffer_pos_texture_(NULL), gbuffer_depth_texture_(NULL),
     bvh_(NULL),
     near_clip_(1e-2), far_clip_(1e3),
     window_width_(512), window_height_(512),
@@ -101,6 +103,22 @@ void Renderer::DistributeVPLs() {
     }
 }
 
+void Renderer::VPLInit() {
+    BuildBVH();
+    DistributeVPLs();
+}
+
+void Renderer::SSAOInit() {
+    gbuffer_shader_ = new Shader(context, vsml, "./Shaders/gbuffer.vs.glsl", "./Shaders/gbuffer.fs.glsl");
+    ssao_shader_ = new Shader(context, vsml, "./Shaders/ssao.vs.glsl", "./Shaders/ssao.fs.glsl");
+
+    Option op;
+    op["type"] = toString(GL_FLOAT);
+    gbuffer_normal_texture_ = new GLTexture(context, window_width_, window_height_, op);
+    gbuffer_pos_texture_ = new GLTexture(context, window_width_, window_height_, op);
+    gbuffer_depth_texture_ = new GLTexture(context, window_width_, window_height_, op);
+}
+
 void Renderer::Init() {
     model_shader_ = new Shader(context, vsml, "./Shaders/draw_with_shadow.vs.glsl", "./Shaders/draw_with_shadow.fs.glsl");
     shadow_map_shader_ = new Shader(context, vsml, "./Shaders/shadow_depth_map.vs.glsl", "./Shaders/shadow_depth_map.fs.glsl");
@@ -111,15 +129,15 @@ void Renderer::Init() {
     std::string mtl_path = "./Models/";
     GLMesh::LoadFromObjFile(context, obj_path, mtl_path, scene_meshes_, materals_);
 
-    BuildBVH();
-    DistributeVPLs();
-
     Option op;
     op["type"] = toString(GL_FLOAT);
     read_buf_ = new GLTexture(context, window_width_, window_height_, op);
     write_buf_ = new GLTexture(context, window_width_, window_height_, op);
     single_pass_ = new GLTexture(context, window_width_, window_height_, op);
     screen_plane_ = GLMesh::plane(context, 1, 1);
+
+    VPLInit();
+    SSAOInit();
 
     // for temp
     cubemap_gen_shader_ = new Shader(context, vsml, "./Shaders/cubemap.vs.glsl", "./Shaders/cubemap.fs.glsl");
@@ -236,6 +254,113 @@ void Renderer::RenderDepthCube(int light_id) {
     }
 }
 
+void Renderer::VPLRender() {
+    // VPL render begin
+    std::function<void(void)> clear_call_back = []() {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    };
+    read_buf_->drawTo(clear_call_back, 3);
+
+    for (int k = 0; k < light_poses_.size(); k++) {
+        // first, render the cubic shadow map (in world coordinate.
+        RenderDepthCube(k);
+        RenderSingleLight(k);
+        std::function<void(void)> call_back2 = [this, k]() {
+            single_pass_->bind(0);
+            read_buf_->bind(1);
+            acc_texture_shader_->uniforms("buffer_A", 0);
+            acc_texture_shader_->uniforms("buffer_B", 1);
+            acc_texture_shader_->uniforms("w_A", float(light_weights_[k]));
+            acc_texture_shader_->uniforms("w_B", 1.f);
+            acc_texture_shader_->draw_mesh(screen_plane_);
+        };
+        write_buf_->drawTo(call_back2, 3);
+        read_buf_->swapWith(write_buf_);
+    }
+    float fov = 45.f;
+    float aspect = (1.0f * window_width_) / window_height_;
+
+    vsml->loadIdentity(VSMathLibQT::PROJECTION);
+    vsml->perspective(fov, aspect, near_clip_, far_clip_);
+
+    vsml->loadIdentity(VSMathLibQT::VIEW);
+    vsml->lookAt(eye_.x, eye_.y, eye_.z, look_at_.x, look_at_.y, look_at_.z, up_.x, up_.y, up_.z);
+
+    vsml->loadIdentity(VSMathLibQT::MODEL);
+    vsml->scale(0.05, 0.05, 0.05);
+    read_buf_->bind(0);
+    show_texture_shader_->uniforms("t_diffuse", 0);
+    show_texture_shader_->draw_mesh(screen_plane_);
+
+    // render the positions of VPLs
+    if (0) {
+        glClear(GL_DEPTH_BUFFER_BIT);
+        for (int k = 0; k < light_poses_.size(); k++) {
+            Vec3d p = light_poses_[k];
+            vsml->loadIdentity(VSMathLibQT::MODEL);
+            vsml->translate(p.x, p.y, p.z);
+            vsml->scale(0.2, 0.2, 0.2);
+            std::function<void(void)> call_back3 = [this, k]() {
+                float diffuse_array[] = {0.7, 0.7, 0.7};
+                float light_color_array[] = {1.0, 1.0, 1.0};
+                float light_pos_array[3];
+                light_pos_.toArray<float>(light_pos_array);
+                cubemap_gen_shader_->uniforms("mode", 1);
+                cubemap_gen_shader_->uniforms("diffuse_color", diffuse_array);
+                cubemap_gen_shader_->uniforms("light_color", light_color_array);
+                cubemap_gen_shader_->uniforms("light_pos", light_pos_array);
+                cubemap_gen_shader_->draw_mesh(sphere_mesh_);
+            };
+            call_back3();
+        }
+    }
+    // VPL render end
+}
+
+void Renderer::SSAORender() {
+    float fov = 45.f;
+    float aspect = (1.0f * window_width_) / window_height_;
+
+    vsml->loadIdentity(VSMathLibQT::PROJECTION);
+    vsml->perspective(fov, aspect, near_clip_, far_clip_);
+
+    vsml->loadIdentity(VSMathLibQT::VIEW);
+    vsml->lookAt(eye_.x, eye_.y, eye_.z, look_at_.x, look_at_.y, look_at_.z, up_.x, up_.y, up_.z);
+
+    vsml->loadIdentity(VSMathLibQT::MODEL);
+    vsml->scale(0.05, 0.05, 0.05);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    std::function<void(void)> call_back = [this]() {
+        glPushAttrib(GL_COLOR_BUFFER_BIT);
+        const float huge = 1e5;
+        glClearColor(huge,huge,huge,huge);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glPopAttrib();
+        for (int i = 0; i < scene_meshes_.size(); i++) {
+            gbuffer_shader_->draw_mesh(scene_meshes_[i]);
+        }
+    };
+    gbuffer_shader_->uniforms("mode", 1);
+    gbuffer_pos_texture_->drawTo(call_back, 0);
+    gbuffer_shader_->uniforms("mode", 2);
+    gbuffer_normal_texture_->drawTo(call_back, 0);
+    gbuffer_shader_->uniforms("mode", 3);
+    gbuffer_depth_texture_->drawTo(call_back, 0);
+
+    gbuffer_pos_texture_->bind(0);
+    gbuffer_normal_texture_->bind(1);
+    gbuffer_depth_texture_->bind(2);
+    ssao_shader_->uniforms("gbuffer_pos", 0);
+    ssao_shader_->uniforms("gbuffer_normal", 1);
+    ssao_shader_->uniforms("gbuffer_depth", 2);
+    ssao_shader_->uniforms("num_sample", 500);
+    ssao_shader_->uniforms("sample_radius", 3.75f);
+    ssao_shader_->uniforms("range_chack_thres", 1.f);
+    ssao_shader_->draw_mesh(screen_plane_);
+}
+
 void Renderer::Render() {
     // gen cubemap (render depth cube)
     /*vsml->loadIdentity(VSMathLibQT::PROJECTION);
@@ -331,67 +456,7 @@ void Renderer::Render() {
     show_texture_shader_->draw_mesh(screen_plane_);
     return;*/
 
-    std::function<void(void)> clear_call_back = []() {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    };
-    read_buf_->drawTo(clear_call_back, 3);
+//    VPLRender();
+    SSAORender();
 
-    for (int k = 0; k < light_poses_.size(); k++) {
-        // first, render the cubic shadow map (in world coordinate.
-        RenderDepthCube(k);
-        RenderSingleLight(k);
-//        if (k == 0) {
-//            QImage qimg;
-//            single_pass_->toQImage(qimg, true);
-//            qimg.save(QString("./single.png"));
-//        }
-        std::function<void(void)> call_back2 = [this, k]() {
-            single_pass_->bind(0);
-            read_buf_->bind(1);
-            acc_texture_shader_->uniforms("buffer_A", 0);
-            acc_texture_shader_->uniforms("buffer_B", 1);
-            acc_texture_shader_->uniforms("w_A", float(light_weights_[k]));
-            acc_texture_shader_->uniforms("w_B", 1.f);
-            acc_texture_shader_->draw_mesh(screen_plane_);
-        };
-        write_buf_->drawTo(call_back2, 3);
-        read_buf_->swapWith(write_buf_);
-    }
-    float fov = 45.f;
-    float aspect = (1.0f * window_width_) / window_height_;;
-
-    vsml->loadIdentity(VSMathLibQT::PROJECTION);
-    vsml->perspective(fov, aspect, near_clip_, far_clip_);
-
-    vsml->loadIdentity(VSMathLibQT::VIEW);
-    vsml->lookAt(eye_.x, eye_.y, eye_.z, look_at_.x, look_at_.y, look_at_.z, up_.x, up_.y, up_.z);
-
-    vsml->loadIdentity(VSMathLibQT::MODEL);
-    vsml->scale(0.05, 0.05, 0.05);
-    read_buf_->bind(0);
-    show_texture_shader_->uniforms("t_diffuse", 0);
-    show_texture_shader_->draw_mesh(screen_plane_);
-
-    // render the positions of VPLs
-    if (0) {
-        glClear(GL_DEPTH_BUFFER_BIT);
-        for (int k = 0; k < light_poses_.size(); k++) {
-            Vec3d p = light_poses_[k];
-            vsml->loadIdentity(VSMathLibQT::MODEL);
-            vsml->translate(p.x, p.y, p.z);
-            vsml->scale(0.2, 0.2, 0.2);
-            std::function<void(void)> call_back3 = [this, k]() {
-                float diffuse_array[] = {0.7, 0.7, 0.7};
-                float light_color_array[] = {1.0, 1.0, 1.0};
-                float light_pos_array[3];
-                light_pos_.toArray<float>(light_pos_array);
-                cubemap_gen_shader_->uniforms("mode", 1);
-                cubemap_gen_shader_->uniforms("diffuse_color", diffuse_array);
-                cubemap_gen_shader_->uniforms("light_color", light_color_array);
-                cubemap_gen_shader_->uniforms("light_pos", light_pos_array);
-                cubemap_gen_shader_->draw_mesh(sphere_mesh_);
-            };
-            call_back3();
-        }
-    }
 }

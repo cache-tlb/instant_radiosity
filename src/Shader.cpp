@@ -24,6 +24,7 @@ void Shader::draw(GLMesh *mesh) {
     // set the uniforms
     context->glUseProgram(vsshader.getProgramIndex());
     vsml->setUniformName(VSMathLibQT::NORMAL, "m_normal");
+    vsml->setUniformName(VSMathLibQT::NORMAL_MODEL, "m_normalModel");
     vsml->setUniformName(VSMathLibQT::MODEL, "m_model");
     vsml->setUniformName(VSMathLibQT::VIEW, "m_view");
     vsml->setUniformName(VSMathLibQT::VIEW_MODEL, "m_viewModel");
@@ -38,6 +39,7 @@ void Shader::draw(GLMesh *mesh) {
 void Shader::draw_instance(GLMesh *mesh, int amount) {
     context->glUseProgram(vsshader.getProgramIndex());
     vsml->setUniformName(VSMathLibQT::NORMAL, "m_normal");
+    vsml->setUniformName(VSMathLibQT::NORMAL_MODEL, "m_normalModel");
     vsml->setUniformName(VSMathLibQT::MODEL, "m_model");
     vsml->setUniformName(VSMathLibQT::VIEW, "m_view");
     vsml->setUniformName(VSMathLibQT::VIEW_MODEL, "m_viewModel");

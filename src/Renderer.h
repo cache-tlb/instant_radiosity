@@ -35,8 +35,15 @@ protected:
 
     void RenderSingleLight(int light_id);
     void RenderDepthCube(int light_id);
+
     void BuildBVH();
     void DistributeVPLs();
+
+    void VPLInit();
+    void SSAOInit();
+
+    void VPLRender();
+    void SSAORender();
 
     QOpenGLFunctionsType *context;
     VSMathLibQT *vsml;
@@ -71,6 +78,9 @@ protected:
     Shader *cubemap_gen_shader_, *cubemap_show_shader_;
     GLMesh *sphere_mesh_, *cube_mash_;
     GLCubeMap *cubemap_texture_;
+
+    Shader *gbuffer_shader_, *ssao_shader_;
+    GLTexture *gbuffer_normal_texture_, *gbuffer_pos_texture_, *gbuffer_depth_texture_;
 
 };
 
