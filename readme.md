@@ -26,7 +26,9 @@ Mitsuba reference result(max depth = 3, Samples per pixel = 4096)
 
 #### Screen space ambient occlusion
 
-TODO: test on more scenes.
+TODO: 
+* how to handle the normal when it's back to the camera  
+* test on more scenes.
 
 -----
 ![](results/ssao.png)
