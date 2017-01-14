@@ -20,9 +20,9 @@ float rand(float n){return fract(sin(n*17.3) * 43758.5453123)*2.0-1.0;}
 vec3 sampleSolidHemisphere(int id) {
     float x = rand(id + 3e4);
     float y = rand(id+ 1e4);
-    float z = rand(id+ 2e4)*0.5+0.5;
+    float z = rand(id+ 2e4)*0.45+0.55;
     float scale = rand(id + 4e4)*0.5 + 0.5;
-    scale = mix(0.1, 1.0, scale*scale);
+    scale = mix(0.2, 1.0, scale*scale);
     vec3 v = normalize(vec3(x, y, z));
     return v*scale;
 }
