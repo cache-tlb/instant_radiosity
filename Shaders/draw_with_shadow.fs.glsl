@@ -62,7 +62,7 @@ float ShadowCubeCalc(vec3 frag_pos_world) {
     return shadow;
 }
 
-void main() 
+void main()
 {
     vec3 normal = normalize(N);
 

@@ -12,7 +12,8 @@ Renderer::Renderer(QOpenGLFunctionsType *context, VSMathLibQT *vsml):
     near_clip_(1e-2), far_clip_(1e3),
     window_width_(512), window_height_(512),
     eye_(0,0,0), look_at_(0,0,-1), up_(0,1,0),
-    light_pos_(278/20., 548/20.-0.1, 279.5/20.-0.1)
+    light_pos_(278/20., 548/20.-0.1, 279.5/20.-0.1),
+    is_show_media(true)
 {
 
 }
@@ -41,21 +42,22 @@ void Renderer::BuildBVH() {
     bvh_ = new BVH(&primitive_ptrs_);
 }
 
-void Renderer::DistributeVPLs() {
+void Renderer::DistributeVPLs(int num, int depth) {
     light_colors_.clear();
     light_poses_.clear();
     light_weights_.clear();
     light_directions_.clear();
 
-    int target_vpl_number = 512*4;
+    int target_vpl_number = num;
     double delta = 0.01;
     Vec3f light_dir(0,-1,0);
     while (light_poses_.size() < target_vpl_number) {
         light_pos_ = Vec3f(213/20. + (343-213)/20.*rand()/RAND_MAX, 548/20.-0.5, 227/20. + (332-227)/20.*rand()/RAND_MAX);
         light_colors_.push_back(Vec3f(1.0, 1.0, 1.0));
         light_poses_.push_back(light_pos_);
-        light_weights_.push_back(1. / double(target_vpl_number)*6);
+        light_weights_.push_back(1. / double(target_vpl_number)*3);
         light_directions_.push_back(light_dir);
+        if (depth <= 0) continue;
         Vec3f sample_dir = CosWeightedHemisphereSample(light_dir);
         Ray ray(light_pos_, sample_dir);
         IntersectionInfo intersection;
@@ -70,6 +72,7 @@ void Renderer::DistributeVPLs() {
         light_weights_.push_back(1. / double(target_vpl_number)*18);
         light_directions_.push_back(normal);
 
+        if (depth <= 1) continue;
         do {
             Vec3f sample_dir = CosWeightedHemisphereSample(normal);
             Ray ray(intersection.hit + normal*delta, sample_dir);
@@ -84,6 +87,7 @@ void Renderer::DistributeVPLs() {
             light_colors_.push_back(c2);
             light_weights_.push_back(1. / double(target_vpl_number)*18);
             light_directions_.push_back(normal);
+            if (depth <= 2) continue;
             do {
                 Vec3f sample_dir = CosWeightedHemisphereSample(normal);
                 Ray ray(intersection.hit + normal*delta, sample_dir);
@@ -105,7 +109,12 @@ void Renderer::DistributeVPLs() {
 
 void Renderer::VPLInit() {
     BuildBVH();
-    DistributeVPLs();
+//    DistributeVPLs(512*4, 2); // VPL
+    DistributeVPLs(128, 0); //volumetric scattering
+}
+
+void Renderer::VSInit() {
+    vs_shader_ = new Shader(context, vsml, "./Shaders/ssao.vs.glsl", "./Shaders/volumetric_scattering.fs.glsl");
 }
 
 void Renderer::SSAOInit() {
@@ -117,6 +126,7 @@ void Renderer::SSAOInit() {
     gbuffer_normal_texture_ = new GLTexture(context, window_width_, window_height_, op);
     gbuffer_pos_texture_ = new GLTexture(context, window_width_, window_height_, op);
     gbuffer_depth_texture_ = new GLTexture(context, window_width_, window_height_, op);
+    gbuffer_albedo_texture_ = new GLTexture(context, window_width_, window_height_, op);
 }
 
 void Renderer::Init() {
@@ -138,6 +148,7 @@ void Renderer::Init() {
 
     VPLInit();
     SSAOInit();
+    VSInit();
 
     // for temp
     cubemap_gen_shader_ = new Shader(context, vsml, "./Shaders/cubemap.vs.glsl", "./Shaders/cubemap.fs.glsl");
@@ -317,6 +328,109 @@ void Renderer::VPLRender() {
     // VPL render end
 }
 
+void Renderer::VolumetricScatteringRender() {
+    int raymarching_num = 64;
+    float max_depth = 100;
+
+    float fov = 45.f;
+    float aspect = (1.0f * window_width_) / window_height_;
+
+    vsml->loadIdentity(VSMathLibQT::PROJECTION);
+    vsml->perspective(fov, aspect, near_clip_, far_clip_);
+
+    vsml->loadIdentity(VSMathLibQT::VIEW);
+    vsml->lookAt(eye_.x, eye_.y, eye_.z, look_at_.x, look_at_.y, look_at_.z, up_.x, up_.y, up_.z);
+
+    vsml->loadIdentity(VSMathLibQT::MODEL);
+    vsml->scale(0.05, 0.05, 0.05);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    std::function<void(void)> init_pos_call_back = [this, max_depth]() {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        vsml->pushMatrix(VSMathLibQT::MODEL);
+        vsml->loadIdentity(VSMathLibQT::MODEL);
+        vsml->scale(max_depth, max_depth, max_depth);
+        cubemap_gen_shader_->uniforms("mode", 2);
+        cubemap_gen_shader_->draw_mesh(sphere_mesh_);
+        vsml->popMatrix(VSMathLibQT::MODEL);
+        for (int i = 0; i < scene_meshes_.size(); i++) {
+            gbuffer_shader_->uniforms("mode", 1);   // world pos
+            gbuffer_shader_->draw_mesh(scene_meshes_[i]);
+        }
+    };
+    gbuffer_pos_texture_->drawTo(init_pos_call_back, 0);
+
+    std::function<void(void)> call_back = [this]() {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        for (int i = 0; i < scene_meshes_.size(); i++) {
+            float albedo[3] = {};
+            Vec3d diffuse = materals_[i]->GetReflectance();
+            diffuse.toArray(albedo);
+            gbuffer_shader_->uniforms("albedo", albedo);
+            gbuffer_shader_->draw_mesh(scene_meshes_[i]);
+        }
+    };
+    gbuffer_shader_->uniforms("mode", 2);   // world normal
+    gbuffer_normal_texture_->drawTo(call_back, 0);
+    gbuffer_shader_->uniforms("mode", 6);   // albedo
+    gbuffer_albedo_texture_->drawTo(call_back, 0);
+
+    float eye_pos_array[3], media_albedo_array[3] = {0.9,0.9,0.9};
+    eye_.toArray(eye_pos_array);
+
+    std::function<void(void)> clear_call_back = []() {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    };
+    read_buf_->drawTo(clear_call_back, 3);
+
+    vs_shader_->uniforms("shadow_cube", 0);
+    vs_shader_->uniforms("gbuffer_pos", 1);
+    vs_shader_->uniforms("gbuffer_normal", 2);
+    vs_shader_->uniforms("gbuffer_albedo", 3);
+    vs_shader_->uniforms("tau", .01f);
+    vs_shader_->uniforms("raymarching_num", raymarching_num);
+    vs_shader_->uniforms("eye_pos", eye_pos_array);
+    vs_shader_->uniforms("media_albedo", media_albedo_array);
+    vs_shader_->uniforms("add_media", is_show_media?1:0);
+    for (int light_id = 0; light_id < light_poses_.size(); light_id++) {
+        RenderDepthCube(light_id);
+        std::function<void(void)> call_back1 = [this, light_id]() {
+            cubemap_texture_->bind(0);
+            gbuffer_pos_texture_->bind(1);
+            gbuffer_normal_texture_->bind(2);
+            gbuffer_albedo_texture_->bind(3);
+            float light_pos_array[3];
+            float light_color_array[3];
+            float light_direction_array[3];
+            light_colors_[light_id].toArray<float>(light_color_array);
+            light_poses_[light_id].toArray<float>(light_pos_array);
+            light_directions_[light_id].toArray<float>(light_direction_array);
+            vs_shader_->uniforms("light_pos", light_pos_array);
+            vs_shader_->uniforms("light_color", light_color_array);
+            vs_shader_->uniforms("light_direction", light_direction_array);
+            glClearColor(0.0, 0.0, 0.0, 1.0);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            vs_shader_->draw_mesh(screen_plane_);
+        };
+        single_pass_->drawTo(call_back1, 3);
+        std::function<void(void)> call_back2 = [this, light_id]() {
+            single_pass_->bind(0);
+            read_buf_->bind(1);
+            acc_texture_shader_->uniforms("buffer_A", 0);
+            acc_texture_shader_->uniforms("buffer_B", 1);
+            acc_texture_shader_->uniforms("w_A", float(light_weights_[light_id]));
+            acc_texture_shader_->uniforms("w_B", 1.f);
+            acc_texture_shader_->draw_mesh(screen_plane_);
+        };
+        write_buf_->drawTo(call_back2, 3);
+        read_buf_->swapWith(write_buf_);
+    }
+    read_buf_->bind(0);
+    show_texture_shader_->uniforms("t_diffuse", 0);
+    show_texture_shader_->draw_mesh(screen_plane_);
+
+}
+
 void Renderer::SSAORender() {
     float fov = 45.f;
     float aspect = (1.0f * window_width_) / window_height_;
@@ -457,6 +571,7 @@ void Renderer::Render() {
     return;*/
 
 //    VPLRender();
-    SSAORender();
+//    SSAORender();
+    VolumetricScatteringRender();
 
 }

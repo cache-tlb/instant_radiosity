@@ -75,4 +75,13 @@ DISTFILES += \
     Shaders/show_texture.fs.glsl \
     Shaders/show_texture.vs.glsl \
     Shaders/acc_texture.fs.glsl \
-    Shaders/acc_texture.vs.glsl
+    Shaders/acc_texture.vs.glsl \
+    Shaders/cubemap.fs.glsl \
+    Shaders/cubemap.vs.glsl \
+    Shaders/envmap.fs.glsl \
+    Shaders/envmap.vs.glsl \
+    Shaders/gbuffer.fs.glsl \
+    Shaders/gbuffer.vs.glsl \
+    Shaders/ssao.fs.glsl \
+    Shaders/ssao.vs.glsl \
+    Shaders/volumetric_scattering.fs.glsl

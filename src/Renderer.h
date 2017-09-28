@@ -29,6 +29,10 @@ public:
         window_width_ = width;
     }
 
+    void ToggleShowMedia() {
+        is_show_media = !is_show_media;
+    }
+
     void SetCamera(const Vec3f &eye, const Vec3f &look_at, const Vec3f &up);
 
 protected:
@@ -37,13 +41,15 @@ protected:
     void RenderDepthCube(int light_id);
 
     void BuildBVH();
-    void DistributeVPLs();
+    void DistributeVPLs(int num, int depth);    // depth -> 0: direct, 1~3: k boundces
 
     void VPLInit();
     void SSAOInit();
+    void VSInit();
 
     void VPLRender();
     void SSAORender();
+    void VolumetricScatteringRender();
 
     QOpenGLFunctionsType *context;
     VSMathLibQT *vsml;
@@ -80,7 +86,10 @@ protected:
     GLCubeMap *cubemap_texture_;
 
     Shader *gbuffer_shader_, *ssao_shader_;
-    GLTexture *gbuffer_normal_texture_, *gbuffer_pos_texture_, *gbuffer_depth_texture_;
+    GLTexture *gbuffer_normal_texture_, *gbuffer_pos_texture_, *gbuffer_depth_texture_, *gbuffer_albedo_texture_;
+    bool is_show_media;
+
+    Shader *vs_shader_;
 
 };
 

@@ -7,7 +7,9 @@
 //       3 -> depth (camera)
 //       4 -> pos (camera)
 //       5 -> normal (camera)
+//       6 -> albedo
 uniform int mode;
+uniform vec3 albedo;
 
 in vec3 frag_pos_world;      // frag_pos is the position of a pixel in world coordinate.
 in vec3 frag_pos_cam;       // position in view space;
@@ -37,6 +39,8 @@ void main()
     } else if (mode == 5) {
         vec3 normal = normalize(frag_normal_cam);
         ret = vec4(normal, 1.0);
+    } else if (mode == 6) {
+        ret = vec4(albedo, 1.0);
     }
     outputF = ret;
 }

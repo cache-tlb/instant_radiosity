@@ -11,6 +11,7 @@ GLWidget::GLWidget(QWidget *parent)
        renderer_(NULL)
 {
     setMouseTracking(true);
+    grabKeyboard();
     camera_controller_.is_static_moving_ = false;
     QGLFormat format;
     format.setSamples(16);
@@ -146,6 +147,14 @@ void GLWidget::keyPressEvent(QKeyEvent *event) {
     arg.key_code = event->key();
     arg.key_type = KeyEventArg::PRESS;
     camera_controller_.HandleKeyPressEvent(arg);
+
+    switch (event->key()) {
+    case 'M':
+        renderer_->ToggleShowMedia();
+        break;
+    default:
+        break;
+    }
 }
 
 void GLWidget::keyReleaseEvent(QKeyEvent *event) {

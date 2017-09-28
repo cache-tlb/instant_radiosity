@@ -234,6 +234,10 @@ void
 VSShaderLibQT::setUniform(std::string name, int value) {
 
 //	assert(pUniforms.count(name) != 0);
+    if (pUniforms.count(name) == 0) {
+        std::cout << "fail to set uniform: " << name << std::endl;
+        return;
+    }
 
     int val = value;
     myUniforms u = pUniforms[name];
@@ -246,6 +250,10 @@ void
 VSShaderLibQT::setUniform(std::string name, float value) {
 
 //	assert(pUniforms.count(name) != 0);
+    if (pUniforms.count(name) == 0) {
+        std::cout << "fail to set uniform: " << name << std::endl;
+        return;
+    }
 
     float val = value;
     myUniforms u = pUniforms[name];
@@ -257,6 +265,10 @@ void
 VSShaderLibQT::setUniform(std::string name, void *value) {
 
 //	assert(pUniforms.count(name) != 0);
+    if (pUniforms.count(name) == 0) {
+        std::cout << "fail to set uniform: " << name << std::endl;
+        return;
+    }
 
     myUniforms u = pUniforms[name];
     switch (u.type) {
