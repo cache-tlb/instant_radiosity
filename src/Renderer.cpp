@@ -123,10 +123,10 @@ void Renderer::SSAOInit() {
 
     Option op;
     op["type"] = toString(GL_FLOAT);
-    gbuffer_normal_texture_ = new GLTexture(context, window_width_, window_height_, op);
-    gbuffer_pos_texture_ = new GLTexture(context, window_width_, window_height_, op);
-    gbuffer_depth_texture_ = new GLTexture(context, window_width_, window_height_, op);
-    gbuffer_albedo_texture_ = new GLTexture(context, window_width_, window_height_, op);
+    gbuffer_normal_texture_ = new GLTexture(context, window_width_*2, window_height_*2, op);
+    gbuffer_pos_texture_ = new GLTexture(context, window_width_*2, window_height_*2, op);
+    gbuffer_depth_texture_ = new GLTexture(context, window_width_*2, window_height_*2, op);
+    gbuffer_albedo_texture_ = new GLTexture(context, window_width_*2, window_height_*2, op);
 }
 
 void Renderer::Init() {
@@ -141,9 +141,9 @@ void Renderer::Init() {
 
     Option op;
     op["type"] = toString(GL_FLOAT);
-    read_buf_ = new GLTexture(context, window_width_, window_height_, op);
-    write_buf_ = new GLTexture(context, window_width_, window_height_, op);
-    single_pass_ = new GLTexture(context, window_width_, window_height_, op);
+    read_buf_ = new GLTexture(context, window_width_*2, window_height_*2, op);
+    write_buf_ = new GLTexture(context, window_width_*2, window_height_*2, op);
+    single_pass_ = new GLTexture(context, window_width_*2, window_height_*2, op);
     screen_plane_ = GLMesh::plane(context, 1, 1);
 
     VPLInit();
@@ -155,7 +155,7 @@ void Renderer::Init() {
     cubemap_show_shader_ = new Shader(context, vsml, "./Shaders/envmap.vs.glsl", "./Shaders/envmap.fs.glsl");
     sphere_mesh_ = GLMesh::sphere(context, 100);
     cube_mash_ = GLMesh::cube(context);
-    cubemap_texture_ = new GLCubeMap(context, 512, 512, op);
+    cubemap_texture_ = new GLCubeMap(context, 1024, 1024, op);
 }
 
 void Renderer::SetCamera(const Vec3f &eye, const Vec3f &look_at, const Vec3f &up) {
